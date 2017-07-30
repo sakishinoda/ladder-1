@@ -5,6 +5,10 @@ import os
 import csv
 from tqdm import tqdm
 
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]='1'
+
+
 layer_sizes = [784, 1000, 500, 250, 250, 250, 10]
 
 L = len(layer_sizes) - 1  # number of layers
