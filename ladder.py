@@ -15,7 +15,7 @@ num_labeled = 100
 
 starter_learning_rate = 0.02
 
-decay_after = 15  # epoch after which to begin learning rate decay
+decay_after = 100  # epoch after which to begin learning rate decay
 
 batch_size = 100
 num_iter = (num_examples/batch_size) * num_epochs  # number of loop iterations
