@@ -4,50 +4,55 @@ import math
 import os
 import csv
 from tqdm import tqdm
+from utils import get_cli_params, process_cli_params
+
+params = process_cli_params(get_cli_params())
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]='1'
+os.environ["CUDA_VISIBLE_DEVICES"]=str(params.which_gpu)
 
-
-layer_sizes = [784, 1000, 500, 250, 250, 250, 10]
+# layer_sizes = [784, 1000, 500, 250, 250, 250, 10]
+layer_sizes = params.encoder_layers
 
 L = len(layer_sizes) - 1  # number of layers
 
 num_examples = 60000
-num_epochs = 150
-num_labeled = 100
+num_epochs = params.end_epoch
+num_labeled = params.num_labeled
 
-starter_learning_rate = 0.02
+starter_learning_rate = params.initial_learning_rate
 
-decay_after = 100  # epoch after which to begin learning rate decay
-
-batch_size = 100
+# epoch after which to begin learning rate decay
+decay_after = params.decay_start_epoch
+batch_size = params.labeled_batch_size
 num_iter = (num_examples/batch_size) * num_epochs  # number of loop iterations
 
 inputs = tf.placeholder(tf.float32, shape=(None, layer_sizes[0]))
 outputs = tf.placeholder(tf.float32)
 
 
-def bi(inits, size, name):
+def bias_init(inits, size, name):
     return tf.Variable(inits * tf.ones([size]), name=name)
 
 
-def wi(shape, name):
+def wts_init(shape, name):
     return tf.Variable(tf.random_normal(shape, name=name)) / math.sqrt(shape[0])
 
 shapes = zip(layer_sizes[:-1], layer_sizes[1:])  # shapes of linear layers
 
-weights = {'W': [wi(s, "W") for s in shapes],  # Encoder weights
-           'V': [wi(s[::-1], "V") for s in shapes],  # Decoder weights
+weights = {'W': [wts_init(s, "W") for s in shapes],  # Encoder weights
+           'V': [wts_init(s[::-1], "V") for s in shapes],  # Decoder weights
            # batch normalization parameter to shift the normalized value
-           'beta': [bi(0.0, layer_sizes[l+1], "beta") for l in range(L)],
+           'beta': [bias_init(0.0, layer_sizes[l + 1], "beta") for l in range(L)],
            # batch normalization parameter to scale the normalized value
-           'gamma': [bi(1.0, layer_sizes[l+1], "beta") for l in range(L)]}
+           'gamma': [bias_init(1.0, layer_sizes[l + 1], "beta") for l in range(L)]}
 
-noise_std = 0.3  # scaling factor for noise used in corrupted encoder
-
+# scaling factor for noise used in corrupted encoder
+# noise_std = 0.3
+noise_std = params.encoder_noise_sd
 # hyperparameters that denote the importance of each layer
-denoising_cost = [1000.0, 10.0, 0.10, 0.10, 0.10, 0.10, 0.10]
+# denoising_cost = [1000.0, 10.0, 0.10, 0.10, 0.10, 0.10, 0.10]
+denoising_cost = params.rc_weights
 
 join = lambda l, u: tf.concat([l, u], 0)
 labeled = lambda x: tf.slice(x, [0, 0], [batch_size, -1]) if x is not None else x
