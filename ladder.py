@@ -160,11 +160,11 @@ def amlp_combinator(z_c, u, size):
     # print(z_c.get_shape, u.get_shape, uz.get_shape)
 
     h = fclayer(x, size_out=4, wts_init=tf.random_normal_initializer(
-        stddev=params.combinator_sd), reuse=None, scope='combinator_hidden')
+        stddev=params.combinator_sd), reuse=None) #, scope='combinator_hidden')
 
     o = fclayer(h, size_out=1, wts_init=tf.random_normal_initializer(
-        stddev=params.combinator_sd), reuse=None, scope='combinator_out',
-                activation=tf.nn.relu)
+        stddev=params.combinator_sd), reuse=None,
+                activation=tf.nn.relu) #, scope='combinator_out')
 
     return tf.squeeze(o)
 
