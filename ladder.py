@@ -158,18 +158,18 @@ def amlp_combinator(z_c, u, size):
     x = tf.stack([z_c, u, uz], axis=-1)
 
     # Standard 4 hidden layer
-    w0 = tf.get_variable(name='amlp_w', shape=[3,4], dtype=float,
+    w0 = tf.get_variable(name='amlp_w', shape=[3,4],
                         initializer=tf.random_normal_initializer(
                             stddev=params.combinator_sd))
-    b0 = tf.get_variable(name='amlp_b', shape=[4,], dtype=float,
+    b0 = tf.get_variable(name='amlp_b', shape=[4,],
                         initializer=0.)
 
     h = x * w0 + b0
 
-    w1 = tf.get_variable(name='amlp_wo', shape=[4,1], dtype=float,
+    w1 = tf.get_variable(name='amlp_wo', shape=[4,1],
                          initializer=tf.random_normal_initializer(
                              stddev=params.combinator_sd))
-    b1 = tf.get_variable(name='amlp_b1', dtype=float, shape=[1,],
+    b1 = tf.get_variable(name='amlp_b1', shape=[1,],
                          initializer=0.)
 
     o = h * w1 + b1
