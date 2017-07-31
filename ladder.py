@@ -162,7 +162,7 @@ def amlp_combinator(z_c, u, size):
                         initializer=tf.random_normal_initializer(
                             stddev=params.combinator_sd))
     b0 = tf.get_variable(name='amlp_b', shape=[4,],
-                        initializer=0.)
+                        initializer=tf.zeros_initializer)
 
     h = x * w0 + b0
 
@@ -170,7 +170,7 @@ def amlp_combinator(z_c, u, size):
                          initializer=tf.random_normal_initializer(
                              stddev=params.combinator_sd))
     b1 = tf.get_variable(name='amlp_b1', shape=[1,],
-                         initializer=0.)
+                         initializer=tf.zeros_initializer)
 
     o = h * w1 + b1
 
