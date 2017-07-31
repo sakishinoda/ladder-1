@@ -11,8 +11,8 @@ params = process_cli_params(get_cli_params())
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]=str(params.which_gpu)
 
-# layer_sizes = [784, 1000, 500, 250, 250, 250, 10]
-layer_sizes = params.encoder_layers
+layer_sizes = [784, 1000, 500, 250, 250, 250, 10]
+# layer_sizes = params.encoder_layers
 
 L = len(layer_sizes) - 1  # number of layers
 
@@ -52,8 +52,8 @@ weights = {'W': [wts_init(s, "W") for s in shapes],  # Encoder weights
 # noise_std = 0.3
 noise_std = params.encoder_noise_sd
 # hyperparameters that denote the importance of each layer
-# denoising_cost = [1000.0, 10.0, 0.10, 0.10, 0.10, 0.10, 0.10]
-denoising_cost = params.rc_weights
+denoising_cost = [1000.0, 10.0, 0.10, 0.10, 0.10, 0.10, 0.10]
+# denoising_cost = params.rc_weights
 
 join = lambda l, u: tf.concat([l, u], 0)
 labeled = lambda x: tf.slice(x, [0, 0], [batch_size, -1]) if x is not None else x
