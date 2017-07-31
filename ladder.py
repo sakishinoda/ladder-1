@@ -5,7 +5,7 @@ import math
 import os
 import csv
 from tqdm import tqdm
-from utils import get_cli_params, process_cli_params
+from utils import get_cli_params, process_cli_params, fclayer
 
 
 params = process_cli_params(get_cli_params())
@@ -156,25 +156,17 @@ print( "=== Decoder ===")
 def amlp_combinator(z_c, u, size):
     uz = tf.multiply(z_c, u)
     x = tf.stack([z_c, u, uz], axis=-1)
+    print(size)
+    # print(z_c.get_shape, u.get_shape, uz.get_shape)
 
-    # Standard 4 hidden layer
-    w0 = tf.get_variable(name='amlp_w', shape=[3,4],
-                        initializer=tf.random_normal_initializer(
-                            stddev=params.combinator_sd))
-    b0 = tf.get_variable(name='amlp_b', shape=[4,],
-                        initializer=tf.zeros_initializer)
+    h = fclayer(x, size_out=4, wts_init=tf.random_normal_initializer(
+        stddev=params.combinator_sd), reuse=None, scope='combinator_hidden')
 
-    h = tf.matmul(x, w0) + b0
+    o = fclayer(h, size_out=1, wts_init=tf.random_normal_initializer(
+        stddev=params.combinator_sd), reuse=None, scope='combinator_out',
+                activation=tf.nn.relu)
 
-    w1 = tf.get_variable(name='amlp_wo', shape=[4,1],
-                         initializer=tf.random_normal_initializer(
-                             stddev=params.combinator_sd))
-    b1 = tf.get_variable(name='amlp_b1', shape=[1,],
-                         initializer=tf.zeros_initializer)
-
-    o = tf.matmul(h, w1) + b1
-
-    return tf.nn.relu(o)
+    return tf.squeeze(o)
 
 
 def gauss_combinator(z_c, u, size):
@@ -215,8 +207,11 @@ for l in range(L, -1, -1):
         u = unlabeled(y_c)
     else:
         u = tf.matmul(z_est[l+1], weights['V'][l])
+
     u = batch_normalization(u)
+
     z_est[l] = combinator(z_c, u, layer_sizes[l])
+
     z_est_bn = (z_est[l] - m) / v
     # append the cost of this layer to d_cost
     d_cost.append((tf.reduce_mean(tf.reduce_sum(tf.square(z_est_bn - z), 1)) / layer_sizes[l]) * denoising_cost[l])
