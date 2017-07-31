@@ -38,7 +38,7 @@ def bias_init(inits, size, name):
 
 
 def wts_init(shape, name):
-    return tf.Variable(tf.random_normal(shape, name=name), type=float) / \
+    return tf.Variable(tf.random_normal(shape, name=name)) / \
            math.sqrt(shape[0])
 
 shapes = zip(layer_sizes[:-1], layer_sizes[1:])  # shapes of linear layers
