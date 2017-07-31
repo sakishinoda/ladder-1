@@ -5,6 +5,7 @@ import os
 import csv
 from tqdm import tqdm
 from utils import get_cli_params, process_cli_params
+from __future__ import print_function
 
 params = process_cli_params(get_cli_params())
 
