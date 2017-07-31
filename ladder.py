@@ -164,7 +164,7 @@ def amlp_combinator(z_c, u, size):
     b0 = tf.get_variable(name='amlp_b', shape=[4,],
                         initializer=tf.zeros_initializer)
 
-    h = x * w0 + b0
+    h = tf.matmul(x, w0) + b0
 
     w1 = tf.get_variable(name='amlp_wo', shape=[4,1],
                          initializer=tf.random_normal_initializer(
@@ -172,7 +172,7 @@ def amlp_combinator(z_c, u, size):
     b1 = tf.get_variable(name='amlp_b1', shape=[1,],
                          initializer=tf.zeros_initializer)
 
-    o = h * w1 + b1
+    o = tf.matmul(h, w1) + b1
 
     return tf.nn.relu(o)
 
