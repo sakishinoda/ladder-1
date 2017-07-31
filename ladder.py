@@ -36,7 +36,8 @@ def bias_init(inits, size, name):
 
 
 def wts_init(shape, name):
-    return tf.Variable(tf.random_normal(shape, name=name)) / math.sqrt(shape[0])
+    return tf.Variable(tf.random_normal(shape, name=name), type=float) / \
+           math.sqrt(shape[0])
 
 shapes = zip(layer_sizes[:-1], layer_sizes[1:])  # shapes of linear layers
 
@@ -93,7 +94,7 @@ def encoder(inputs, noise_std):
     d['unlabeled'] = {'z': {}, 'm': {}, 'v': {}, 'h': {}}
     d['labeled']['z'][0], d['unlabeled']['z'][0] = split_lu(h)
     for l in range(1, L+1):
-        print "Layer ", l, ": ", layer_sizes[l-1], " -> ", layer_sizes[l]
+        print("Layer ", l, ": ", layer_sizes[l-1], " -> ", layer_sizes[l])
         d['labeled']['h'][l-1], d['unlabeled']['h'][l-1] = split_lu(h)
         z_pre = tf.matmul(h, weights['W'][l-1])  # pre-activation
         z_pre_l, z_pre_u = split_lu(z_pre)  # split labeled and unlabeled examples
@@ -142,16 +143,39 @@ def encoder(inputs, noise_std):
     d['labeled']['h'][l], d['unlabeled']['h'][l] = split_lu(h)
     return h, d
 
-print "=== Corrupted Encoder ==="
+print( "=== Corrupted Encoder ===")
 y_c, corr = encoder(inputs, noise_std)
 
-print "=== Clean Encoder ==="
+print( "=== Clean Encoder ===")
 y, clean = encoder(inputs, 0.0)  # 0.0 -> do not add noise
 
-print "=== Decoder ==="
+print( "=== Decoder ===")
+
+def amlp_combinator(z_c, u, size):
+    uz = tf.multiply(z_c, u)
+    x = tf.stack([z_c, u, uz], axis=-1)
+
+    # Standard 4 hidden layer
+    w0 = tf.get_variable(name='amlp_w', shape=[3,4], dtype=float,
+                        initializer=tf.random_normal_initializer(
+                            stddev=params.combinator_sd))
+    b0 = tf.get_variable(name='amlp_b', shape=[4,], dtype=float,
+                        initializer=0.)
+
+    h = x * w0 + b0
+
+    w1 = tf.get_variable(name='amlp_wo', shape=[4,1], dtype=float,
+                         initializer=tf.random_normal_initializer(
+                             stddev=params.combinator_sd))
+    b1 = tf.get_variable(name='amlp_b1', dtype=float, shape=[1,],
+                         initializer=0.)
+
+    o = h * w1 + b1
+
+    return tf.nn.relu(o)
 
 
-def g_gauss(z_c, u, size):
+def gauss_combinator(z_c, u, size):
     "gaussian denoising function proposed in the original paper"
     wi = lambda inits, name: tf.Variable(inits * tf.ones([size]), name=name)
     a1 = wi(0., 'a1')
@@ -172,11 +196,17 @@ def g_gauss(z_c, u, size):
     z_est = (z_c - mu) * v + mu
     return z_est
 
+
+# Choose recombination function
+combinator = amlp_combinator
+
+
 # Decoder
 z_est = {}
 d_cost = []  # to store the denoising cost of all layers
 for l in range(L, -1, -1):
-    print "Layer ", l, ": ", layer_sizes[l+1] if l+1 < len(layer_sizes) else None, " -> ", layer_sizes[l], ", denoising cost: ", denoising_cost[l]
+    print("Layer ", l, ": ", layer_sizes[l+1] if l+1 < len(layer_sizes) else
+    None, " -> ", layer_sizes[l], ", denoising cost: ", denoising_cost[l])
     z, z_c = clean['unlabeled']['z'][l], corr['unlabeled']['z'][l]
     m, v = clean['unlabeled']['m'].get(l, 0), clean['unlabeled']['v'].get(l, 1-1e-10)
     if l == L:
@@ -184,7 +214,7 @@ for l in range(L, -1, -1):
     else:
         u = tf.matmul(z_est[l+1], weights['V'][l])
     u = batch_normalization(u)
-    z_est[l] = g_gauss(z_c, u, layer_sizes[l])
+    z_est[l] = combinator(z_c, u, layer_sizes[l])
     z_est_bn = (z_est[l] - m) / v
     # append the cost of this layer to d_cost
     d_cost.append((tf.reduce_mean(tf.reduce_sum(tf.square(z_est_bn - z), 1)) / layer_sizes[l]) * denoising_cost[l])
@@ -209,12 +239,12 @@ bn_updates = tf.group(*bn_assigns)
 with tf.control_dependencies([train_step]):
     train_step = tf.group(bn_updates)
 
-print "===  Loading Data ==="
+print("===  Loading Data ===")
 mnist = input_data.read_data_sets("MNIST_data", n_labeled=num_labeled, one_hot=True)
 
 saver = tf.train.Saver()
 
-print "===  Starting Session ==="
+print("===  Starting Session ===")
 sess = tf.Session()
 
 i_iter = 0
@@ -225,7 +255,7 @@ if ckpt and ckpt.model_checkpoint_path:
     saver.restore(sess, ckpt.model_checkpoint_path)
     epoch_n = int(ckpt.model_checkpoint_path.split('-')[1])
     i_iter = (epoch_n+1) * (num_examples/batch_size)
-    print "Restored Epoch ", epoch_n
+    print("Restored Epoch ", epoch_n)
 else:
     # no checkpoint exists. create checkpoints directory if it does not exist.
     if not os.path.exists('checkpoints'):
@@ -233,8 +263,9 @@ else:
     init = tf.global_variables_initializer()
     sess.run(init)
 
-print "=== Training ==="
-print "Initial Accuracy: ", sess.run(accuracy, feed_dict={inputs: mnist.test.images, outputs: mnist.test.labels, training: False}), "%"
+print("=== Training ===")
+print("Initial Accuracy: ", sess.run(accuracy, feed_dict={
+    inputs: mnist.test.images, outputs: mnist.test.labels, training: False}), "%")
 
 for i in tqdm(range(i_iter, num_iter)):
     images, labels = mnist.train.next_batch(batch_size)
@@ -252,9 +283,13 @@ for i in tqdm(range(i_iter, num_iter)):
         with open('train_log', 'ab') as train_log:
             # write test accuracy to file "train_log"
             train_log_w = csv.writer(train_log)
-            log_i = [epoch_n] + sess.run([accuracy], feed_dict={inputs: mnist.test.images, outputs: mnist.test.labels, training: False})
+            log_i = [epoch_n] + sess.run(
+                [accuracy],
+                feed_dict={inputs: mnist.test.images, outputs: mnist.test.labels, training: False})
             train_log_w.writerow(log_i)
 
-print "Final Accuracy: ", sess.run(accuracy, feed_dict={inputs: mnist.test.images, outputs: mnist.test.labels, training: False}), "%"
+print("Final Accuracy: ", sess.run(accuracy, feed_dict={
+    inputs: mnist.test.images, outputs: mnist.test.labels, training: False}),
+      "%")
 
 sess.close()

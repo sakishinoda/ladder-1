@@ -18,7 +18,6 @@ def decay_learning_rate(initial_learning_rate, decay_start_epoch, end_epoch, ite
 def parse_argstring(argstring, dtype=float, sep='-'):
     return list(map(dtype, argstring.split(sep)))
 
-
 def get_cli_params():
     parser = argparse.ArgumentParser()
     parser.add_argument('--id', default='ladder')
@@ -71,7 +70,6 @@ def get_cli_params():
     params.write_to = 'logs/' + params.id + '.results' if params.write_to is \
                                                         None else params.write_to
     return params
-
 
 def process_cli_params(params):
 
