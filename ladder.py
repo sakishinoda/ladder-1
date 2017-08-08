@@ -192,7 +192,7 @@ def gauss_combinator(z_c, u, size):
 
 
 # Choose recombination function
-combinator = amlp_combinator
+combinator = gauss_combinator
 
 
 # Decoder
